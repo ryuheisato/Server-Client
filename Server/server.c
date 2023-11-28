@@ -10,10 +10,11 @@
 
 #define SERVER_PORT 5000  // Define the server port
 
+void handle_request(int connfd);
+
 int main(int argc, char *argv[]) {
     int listenfd, connfd;  // Socket file descriptors
     struct sockaddr_in serv_addr;  // Server address structure
-    char from_client[1025];
 
     // Create a socket for the server
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -35,19 +36,23 @@ int main(int argc, char *argv[]) {
     for(;;) {
         // Accept a connection from a client
         connfd = accept(listenfd, NULL, NULL);
-        
-        int recvLen = recv(connfd, from_client, 1024, 0);
-        // Receive data from the client
-        if (recvLen > 0) {
-            from_client[recvLen] = '\0';  // ヌル文字を追加
-            printf("File Requested: %s\n", from_client);
-        } else {
-            // エラーハンドリング
-            printf("Receive error or connection closed by client\n");
-        }
+        handle_request(connfd);
 
         // Close the connection and wait for a new one
         close(connfd);
         sleep(1);
+    }
+}
+
+void handle_request(int connfd) {
+    char from_client[1025];
+    int recvLen = recv(connfd, from_client, 1024, 0);
+    // Receive data from the client
+    if (recvLen > 0) {
+        from_client[recvLen] = '\0';  // ヌル文字を追加
+        printf("File Requested: %s\n", from_client);
+        // implement the open file code here
+    } else {
+        printf("Receive error or connection closed by client\n");
     }
 }
