@@ -9,6 +9,7 @@
 #include <sys/types.h>
 
 #define SERVER_PORT 5000  // Define the server port
+#define ROOT_DIR "./root/"
 
 void handle_request(int connfd);
 
@@ -50,8 +51,48 @@ void handle_request(int connfd) {
     // Receive data from the client
     if (recvLen > 0) {
         from_client[recvLen] = '\0';  // ヌル文字を追加
+        
+        // 改行文字の削除
+        char *newline = strchr(from_client, '\n'); // 改行文字を探す
+        if (newline) {
+            *newline = '\0'; // 改行文字をヌル文字に置き換える
+        }
+        
         printf("File Requested: %s\n", from_client);
-        // implement the open file code here
+        
+        char file_path[2048];
+        snprintf(file_path, sizeof(file_path), "%s%s", ROOT_DIR, from_client);
+        printf("%s\n", file_path);
+        fflush(stdout);
+        
+        FILE *file = fopen(file_path, "rb");
+        if (file == NULL) {
+            perror("File open error");
+            return;
+        }
+
+        // ファイルサイズを取得
+        fseek(file, 0, SEEK_END);
+        long file_size = ftell(file);
+        fseek(file, 0, SEEK_SET);
+
+        // ファイルサイズを送信
+        char file_size_str[20];
+        sprintf(file_size_str, "%ld\n", file_size);
+        send(connfd, file_size_str, strlen(file_size_str), 0);
+
+        // flag
+        const char* end_flag = "\nEND\n";
+        send(connfd, end_flag, strlen(end_flag), 0);
+
+        // ファイルの内容を送信
+        char buffer[1024];
+        int bytesRead;
+        while ((bytesRead = fread(buffer, 1, sizeof(buffer), file)) > 0) {
+            send(connfd, buffer, bytesRead, 0);
+        }
+
+        fclose(file);
     } else {
         printf("Receive error or connection closed by client\n");
     }
