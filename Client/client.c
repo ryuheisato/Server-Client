@@ -55,7 +55,39 @@ int main(int argc, char *argv[]) {
     // Send the character to server
     send(sockfd, filename, strlen(filename), 0);
     printf("%s", "file Sent\n");
+    
+    // ファイルサイズの読み取り
+    char file_size_str[20];
+    if(read(sockfd, file_size_str, sizeof(file_size_str) - 1) <= 0) {
+        perror("Read file size error");
+        close(sockfd);
+        return 1;
+    }
 
-    close(sockfd);  // Close the socket
+    file_size_str[strcspn(file_size_str, "\n")] = '\0'; // 改行を削除
+    long file_size = atol(file_size_str);
+    printf("File size: %ld bytes\n", file_size);
+
+    // ファイルの内容を受信
+    char *buffer = malloc(file_size + 1); // 受信する全データのためのバッファを確保
+    long total_bytes_read = 0;
+    while (total_bytes_read < file_size) {
+        int bytes_read = read(sockfd, buffer + total_bytes_read, file_size - total_bytes_read);
+        if (bytes_read < 0) {
+            perror("Read error");
+            break;
+        }
+        total_bytes_read += bytes_read;
+
+        if (strstr(buffer + total_bytes_read - bytes_read, "END\n")) { // フラグの確認
+            break;
+        }
+    }
+
+    buffer[total_bytes_read] = '\0'; // ヌル終端
+    printf("Received file content:\n%s\n", buffer);
+
+    free(buffer);
+    close(sockfd);
     return 0;
 }
