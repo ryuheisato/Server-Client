@@ -1,5 +1,4 @@
 #include <sys/socket.h>  // Include necessary headers for socket programming
-#include <sys/types.h>
 #include <netinet/in.h>
 #include <stdio.h>       // Standard input/output functions
 #include <stdlib.h>      // Standard library functions
@@ -10,8 +9,7 @@
 int main(int argc, char *argv[]) {
     int sockfd;                       // Socket file descriptor
     struct sockaddr_in serv_addr;     // Server address structure
-    char letter[2];                   // Array to store a single character input
-    char recvBuff[1024];              // Buffer to store received data
+    char filename[1024];              // Buffer to store received data
 
     // Check for correct number of command line arguments
     if(argc != 2) {
@@ -27,9 +25,9 @@ int main(int argc, char *argv[]) {
     }
 
     // Prompt user for input
-    printf("Enter a Character (t, n, i, q): ");
-    scanf(" %c", letter);
-    letter[1] = '\0';                 // Null terminate the string
+    printf("Enter the filename: ");
+    scanf(" %s", filename);
+    strcat(filename, "\n");
 
     // Initialize server address to zero and set properties
     memset(&serv_addr, '0', sizeof(serv_addr));
@@ -55,24 +53,8 @@ int main(int argc, char *argv[]) {
     }
 
     // Send the character to server
-    send(sockfd, letter, strlen(letter), 0);
-    printf("%s", "Letter Sent\n");
-    
-    // If character is 'q', quit
-    if(*letter == 'q') {
-        close(sockfd);
-        return 0;
-    }
-
-    // Receive data from server
-    ssize_t recvLen = recv(sockfd, recvBuff, sizeof(recvBuff), 0);
-    
-    // Print received data based on the command
-    if(*letter == 'i') {
-        printf("%d", *(int *) recvBuff); // If command is 'i', interpret as integer
-    } else {
-        printf("%.*s", (int) recvLen, recvBuff); // Otherwise, print as string
-    }
+    send(sockfd, filename, strlen(filename), 0);
+    printf("%s", "file Sent\n");
 
     close(sockfd);  // Close the socket
     return 0;
