@@ -26,8 +26,8 @@ int main(int argc, char *argv[]) {
 
     // Prompt user for input
     printf("Enter the filename: ");
-    scanf(" %s", filename);
-    strcat(filename, "\n");
+    fgets(filename, sizeof(filename), stdin);
+    filename[strcspn(filename, "\n")] = '\0'; // 改行文字を削除
 
     // Initialize server address to zero and set properties
     memset(&serv_addr, '0', sizeof(serv_addr));
@@ -54,22 +54,27 @@ int main(int argc, char *argv[]) {
 
     // Send the character to server
     send(sockfd, filename, strlen(filename), 0);
-    printf("%s", "file Sent\n");
+    printf("File Sent\n");
     
     // ファイルサイズの読み取り
     char file_size_str[20];
-    if(read(sockfd, file_size_str, sizeof(file_size_str) - 1) <= 0) {
-        perror("Read file size error");
-        close(sockfd);
-        return 1;
+    int valread_size = 0;
+    while (1) {
+        int bytes_read = read(sockfd, file_size_str + valread_size, 1);
+        if (bytes_read <= 0) {
+            break;
+        }
+        valread_size += bytes_read;
+        if (file_size_str[valread_size - 1] == '\n') {
+            break;
+        }
     }
-
-    file_size_str[strcspn(file_size_str, "\n")] = '\0'; // 改行を削除
+    file_size_str[valread_size - 1] = '\0';
     long file_size = atol(file_size_str);
     printf("File size: %ld bytes\n", file_size);
-
+    
     // ファイルの内容を受信
-    char *buffer = malloc(file_size + 1); // 受信する全データのためのバッファを確保
+    char *buffer = malloc(file_size + 1);
     long total_bytes_read = 0;
     while (total_bytes_read < file_size) {
         int bytes_read = read(sockfd, buffer + total_bytes_read, file_size - total_bytes_read);
@@ -78,13 +83,8 @@ int main(int argc, char *argv[]) {
             break;
         }
         total_bytes_read += bytes_read;
-
-        if (strstr(buffer + total_bytes_read - bytes_read, "END\n")) { // フラグの確認
-            break;
-        }
     }
-
-    buffer[total_bytes_read] = '\0'; // ヌル終端
+    buffer[total_bytes_read] = '\0';
     printf("Received file content:\n%s\n", buffer);
 
     free(buffer);
